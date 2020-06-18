@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "module": "CommonJS",
+    "lib": ["ES6"],
+    "target": "ES6",
+    "downlevelIteration": true,
+    "outDir": "dist"
+  },
+  "include": ["src/**/*"]
+}
