@@ -39,7 +39,7 @@ export let makeRequest: MakeRequest = ({ port, host, auth, path }) => ({
     path,
     headers: {
       ...headers,
-      Host: new URL(path).hostname,
+      host: new URL(path).hostname,
       ...(authBase64 !== null && {
         "Proxy-Authorization": `Basic ${authBase64}`
       })
@@ -47,6 +47,9 @@ export let makeRequest: MakeRequest = ({ port, host, auth, path }) => ({
   };
 
   let proxyReq = (protocol === "https" ? httpsReq : httpReq)(options, res => {
+    Object.entries(res.headers).forEach(([k, v]) => {
+      inRes.setHeader(k, v || "");
+    });
     res.pipe(inRes);
   });
   proxyReq.on("error", e => {
