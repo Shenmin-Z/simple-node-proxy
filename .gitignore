@@ -1,7 +1,7 @@
 node_modules
 dist
 yarn.lock
-src/get-params.ts
+config.json
 myCA/myCA.srl
 myCA/generated
 myCA/passphrase.txt

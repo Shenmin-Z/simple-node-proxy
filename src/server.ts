@@ -2,7 +2,7 @@ import { createServer, IncomingMessage } from "http";
 import { URL } from "url";
 
 import { getParams } from "./get-params";
-import { connectProxy } from "./connect-proxy";
+import { makeRequest } from "./connect-proxy";
 import { getUrl } from "./convert";
 
 const HTTP_PROXY = process.env.http_proxy;
@@ -12,15 +12,25 @@ let { SERVER } = getParams();
 
 let server = createServer((inReq, inRes) => {
   let headers = filterHeader(inReq.headers, ["x-mwg-via"]);
-  if (typeof HTTP_PROXY === "string") {
-    let { hostname: proxyHost, port: proxyPort } = new URL(HTTP_PROXY);
-    connectProxy({
+  let path = getUrl(inReq.headers);
+
+  if (SERVER.proxy) {
+    let serverProxy;
+    if (SERVER.proxy.toLowerCase() === "true") {
+      serverProxy = HTTP_PROXY || (HTTPS_PROXY as string);
+    } else {
+      serverProxy = SERVER.proxy;
+    }
+    let { hostname: proxyHost, port: proxyPort } = new URL(serverProxy);
+    makeRequest({
       port: parseInt(proxyPort),
       host: proxyHost,
-      path: getUrl(inReq.headers)
+      path
     })({ headers, inRes });
-  } else if (typeof HTTPS_PROXY) {
   } else {
+    makeRequest({
+      path
+    })({ headers, inRes });
   }
 });
 

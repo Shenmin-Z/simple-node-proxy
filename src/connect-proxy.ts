@@ -7,28 +7,32 @@ import {
 import { request as httpsReq } from "https";
 import { URL } from "url";
 
-type ProxyOptions1 = {
-  port: number;
-  host: string;
+type RequestOptions1 = {
+  port?: number;
+  host?: string;
   path: string;
   auth?: string;
 };
 
-type ProxyOptions2 = {
+type RequestOptions2 = {
   headers: IncomingMessage["headers"];
   inRes: ServerResponse;
 };
 
-export let connectProxy = ({ port, host, auth, path }: ProxyOptions1) => ({
+type MakeRequest = { (p1: RequestOptions1): (p2: RequestOptions2) => void };
+export let makeRequest: MakeRequest = ({ port, host, auth, path }) => ({
   headers,
   inRes
-}: ProxyOptions2) => {
-  let { protocol } = new URL(path);
+}) => {
+  let { protocol, hostname: hostFromUrl, port: portFromUrl } = new URL(path);
 
+  port = port || parseInt(portFromUrl);
+  host = host || hostFromUrl;
   let authBase64 = (() => {
     if (auth === undefined) return null;
     return `${Buffer.from(auth).toString("base64")}`;
   })();
+
   let options: RequestOptions = {
     host,
     port,

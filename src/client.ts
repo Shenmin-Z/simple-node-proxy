@@ -10,7 +10,7 @@ import { resolve } from "path";
 import { createSecureContext } from "tls";
 
 import { getParams } from "./get-params";
-import { connectProxy } from "./connect-proxy";
+import { makeRequest } from "./connect-proxy";
 import { hideUrl } from "./convert";
 import { generateCertificate } from "./generate-certificate";
 
@@ -18,20 +18,24 @@ let { PROXY, SERVER, CLIENT, HTTPS } = getParams();
 
 let handler = (req: IncomingMessage, res: ServerResponse) => {
   let url = req.url as string;
+  // TODO
   // I've not seen this documented anywhere :(
   let httpsServerName = (req as any).client?.servername || "";
   if (httpsServerName) {
     url = `https://${httpsServerName}${url}`;
   }
-  connectProxy({
+  makeRequest({
     port: PROXY.port,
     host: PROXY.host,
     auth: PROXY.auth,
     path: `http://${SERVER.host}:${SERVER.port}`
   })({ headers: hideUrl(req.headers, url), inRes: res });
 };
+
+/******************** 1. HTTP ********************/
 let httpClient = createHttpServer(handler);
 
+/******************** 2. HTTPS ********************/
 let sharedKey = readFileSync(resolve(process.cwd(), "myCA/myDev.key"));
 let fakeCrtPool: { [s: string]: Buffer } = {
   mydev: readFileSync(resolve(process.cwd(), "myCA/myDev.crt"))
