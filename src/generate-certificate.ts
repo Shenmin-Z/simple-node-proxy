@@ -1,6 +1,6 @@
 import { spawn } from "child_process";
 import { resolve } from "path";
-import { existsSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
 
 let generate = (host: string) =>
   spawn(
@@ -32,6 +32,9 @@ let generate = (host: string) =>
 
 let ext = readFileSync(resolve(process.cwd(), "myCA/myDev.ext"), "utf8");
 let writeTmpExt = (host: string) => {
+  if (!existsSync(resolve(process.cwd(), `myCA/generated`))) {
+    mkdirSync(resolve(process.cwd(), `myCA/generated`));
+  }
   writeFileSync(
     resolve(process.cwd(), `myCA/generated/${host}.ext`),
     ext.replace("myDev", host),

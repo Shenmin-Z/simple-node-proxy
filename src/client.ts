@@ -1,4 +1,8 @@
-import { createServer as createHttpServer, IncomingMessage } from "http";
+import {
+  createServer as createHttpServer,
+  IncomingMessage,
+  ServerResponse
+} from "http";
 import { createServer as createHttpsServer } from "https";
 import { Socket, connect } from "net";
 import { readFileSync } from "fs";
@@ -12,18 +16,25 @@ import { generateCertificate } from "./generate-certificate";
 
 let { PROXY, SERVER, CLIENT, HTTPS } = getParams();
 
-let httpClient = createHttpServer((req, res) => {
+let handler = (req: IncomingMessage, res: ServerResponse) => {
+  let url = req.url as string;
+  // I've not seen this documented anywhere :(
+  let httpsServerName = (req as any).client?.servername || "";
+  if (httpsServerName) {
+    url = `https://${httpsServerName}${url}`;
+  }
   connectProxy({
     port: PROXY.port,
     host: PROXY.host,
     auth: PROXY.auth,
     path: `http://${SERVER.host}:${SERVER.port}`
-  })({ headers: hideUrl(req.headers, req.url as string), inRes: res });
-});
+  })({ headers: hideUrl(req.headers, url), inRes: res });
+};
+let httpClient = createHttpServer(handler);
 
 let sharedKey = readFileSync(resolve(process.cwd(), "myCA/myDev.key"));
 let fakeCrtPool: { [s: string]: Buffer } = {
-  myDev: readFileSync(resolve(process.cwd(), "myCA/myDev.crt"))
+  mydev: readFileSync(resolve(process.cwd(), "myCA/myDev.crt"))
 };
 
 httpClient.on(
@@ -58,10 +69,7 @@ httpClient.listen(CLIENT.port, CLIENT.host, () => {
 
 let httpsClient = createHttpsServer(
   {
-    key: sharedKey,
-    cert: fakeCrtPool.myDev,
     SNICallback: (domain, cb) => {
-      console.log("domain:", domain);
       let ctx = createSecureContext({
         key: sharedKey,
         cert: fakeCrtPool[domain]
@@ -69,10 +77,7 @@ let httpsClient = createHttpsServer(
       cb(null, ctx);
     }
   },
-  (req, res) => {
-    res.writeHead(200);
-    res.end("https!");
-  }
+  handler
 );
 
 httpsClient.listen(HTTPS.port, HTTPS.host, () => {
