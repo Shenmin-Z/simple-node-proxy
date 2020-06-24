@@ -35,6 +35,9 @@ export let makeRequest: MakeRequest = ({ port, host, auth, path }) => ({
   let proxyReq: ClientRequest;
   let request = direct && protocol === "https:" ? httpsReq : httpReq;
   let onRes = (res: IncomingMessage) => {
+    inRes.statusCode = res.statusCode || 200;
+    inRes.statusMessage = res.statusMessage || "";
+
     Object.entries(res.headers).forEach(([k, v]) => {
       inRes.setHeader(k, v || "");
     });
