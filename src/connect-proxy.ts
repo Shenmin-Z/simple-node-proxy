@@ -28,6 +28,11 @@ export let makeRequest: MakeRequest = ({ port, host, auth, path }) => ({
   headers,
   inRes
 }) => {
+  if (path === undefined) {
+    inRes.statusCode = 418;
+    inRes.end();
+  }
+
   let { protocol } = new URL(path);
 
   let direct = host === undefined;
