@@ -1,9 +1,10 @@
-import { createServer, IncomingMessage } from "http";
+import { createServer } from "http";
 import { URL } from "url";
 
 import { getParams } from "./get-params";
 import { makeRequest } from "./connect-proxy";
 import { getUrl } from "./convert";
+import { filterHeader } from "./utils";
 
 const HTTP_PROXY = process.env.http_proxy;
 const HTTPS_PROXY = process.env.https_proxy;
@@ -33,16 +34,5 @@ let server = createServer((inReq, inRes) => {
     })({ headers, inRes });
   }
 });
-
-let filterHeader = (header: IncomingMessage["headers"], list: string[]) => {
-  let res: IncomingMessage["headers"] = {};
-  let llist = list.map(i => i.toLowerCase());
-  Object.entries(header).forEach(([key, value]) => {
-    if (!llist.includes(key)) {
-      res[key] = value;
-    }
-  });
-  return res;
-};
 
 server.listen(SERVER.realPort, "0.0.0.0");

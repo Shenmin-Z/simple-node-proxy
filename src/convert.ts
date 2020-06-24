@@ -1,6 +1,6 @@
 import { IncomingMessage } from "http";
 
-const SNP_URL = "SNP-Url";
+export const SNP_URL = "x-snp-url";
 
 export let hideUrl = (
   headers: IncomingMessage["headers"],

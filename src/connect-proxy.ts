@@ -2,10 +2,14 @@ import {
   IncomingMessage,
   request as httpReq,
   RequestOptions,
-  ServerResponse
+  ServerResponse,
+  ClientRequest
 } from "http";
 import { request as httpsReq } from "https";
 import { URL } from "url";
+
+import { filterHeader } from "./utils";
+import { SNP_URL } from "./convert";
 
 type RequestOptions1 = {
   port?: number;
@@ -24,34 +28,48 @@ export let makeRequest: MakeRequest = ({ port, host, auth, path }) => ({
   headers,
   inRes
 }) => {
-  let { protocol, hostname: hostFromUrl, port: portFromUrl } = new URL(path);
+  let { protocol } = new URL(path);
 
-  port = port || parseInt(portFromUrl);
-  host = host || hostFromUrl;
-  let authBase64 = (() => {
-    if (auth === undefined) return null;
-    return `${Buffer.from(auth).toString("base64")}`;
-  })();
+  let direct = host === undefined;
 
-  let options: RequestOptions = {
-    host,
-    port,
-    path,
-    headers: {
-      ...headers,
-      host: new URL(path).hostname,
-      ...(authBase64 !== null && {
-        "Proxy-Authorization": `Basic ${authBase64}`
-      })
-    }
-  };
-
-  let proxyReq = (protocol === "https" ? httpsReq : httpReq)(options, res => {
+  let proxyReq: ClientRequest;
+  let request = direct && protocol === "https:" ? httpsReq : httpReq;
+  let onRes = (res: IncomingMessage) => {
     Object.entries(res.headers).forEach(([k, v]) => {
       inRes.setHeader(k, v || "");
     });
     res.pipe(inRes);
-  });
+  };
+
+  if (direct) {
+    proxyReq = request(
+      path,
+      {
+        headers: filterHeader(headers, ["proxy-authorization", SNP_URL, "host"])
+      },
+      onRes
+    );
+  } else {
+    let authBase64 = (() => {
+      if (auth === undefined) return null;
+      return `${Buffer.from(auth).toString("base64")}`;
+    })();
+
+    let options: RequestOptions = {
+      host,
+      port,
+      path,
+      headers: {
+        ...headers,
+        host: new URL(path).hostname,
+        ...(authBase64 !== null && {
+          "proxy-authorization": `Basic ${authBase64}`
+        })
+      }
+    };
+
+    proxyReq = request(options, onRes);
+  }
   proxyReq.on("error", e => {
     console.log(e);
   });
