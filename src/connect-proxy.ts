@@ -20,17 +20,20 @@ type RequestOptions1 = {
 
 type RequestOptions2 = {
   headers: IncomingMessage["headers"];
+  inReq: IncomingMessage;
   inRes: ServerResponse;
 };
 
 type MakeRequest = { (p1: RequestOptions1): (p2: RequestOptions2) => void };
 export let makeRequest: MakeRequest = ({ port, host, auth, path }) => ({
   headers,
-  inRes
+  inRes,
+  inReq
 }) => {
   if (path === undefined) {
     inRes.statusCode = 418;
     inRes.end();
+    return;
   }
 
   let { protocol } = new URL(path);
@@ -53,7 +56,10 @@ export let makeRequest: MakeRequest = ({ port, host, auth, path }) => ({
     proxyReq = request(
       path,
       {
-        headers: filterHeader(headers, ["proxy-authorization", SNP_URL, "host"])
+        method: inReq.method,
+        headers: {
+          ...filterHeader(headers, ["proxy-authorization", SNP_URL, "host"])
+        }
       },
       onRes
     );
@@ -67,6 +73,7 @@ export let makeRequest: MakeRequest = ({ port, host, auth, path }) => ({
       host,
       port,
       path,
+      method: inReq.method,
       headers: {
         ...headers,
         host: new URL(path).hostname,
@@ -81,5 +88,10 @@ export let makeRequest: MakeRequest = ({ port, host, auth, path }) => ({
   proxyReq.on("error", e => {
     console.log(e);
   });
-  proxyReq.end();
+  inReq.on("data", data => {
+    proxyReq.write(data);
+  });
+  inReq.on("end", () => {
+    proxyReq.end();
+  });
 };

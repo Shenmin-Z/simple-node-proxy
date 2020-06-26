@@ -27,11 +27,11 @@ let server = createServer((inReq, inRes) => {
       port: parseInt(proxyPort),
       host: proxyHost,
       path
-    })({ headers, inRes });
+    })({ headers, inRes, inReq });
   } else {
     makeRequest({
       path
-    })({ headers, inRes });
+    })({ headers, inRes, inReq });
   }
 });
 

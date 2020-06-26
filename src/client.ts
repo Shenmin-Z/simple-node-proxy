@@ -29,7 +29,7 @@ let handler = (req: IncomingMessage, res: ServerResponse) => {
     host: PROXY.host,
     auth: PROXY.auth,
     path: `http://${SERVER.host}:${SERVER.port}`
-  })({ headers: hideUrl(req.headers, url), inRes: res });
+  })({ headers: hideUrl(req.headers, url), inRes: res, inReq: req });
 };
 
 /******************** 1. HTTP ********************/
